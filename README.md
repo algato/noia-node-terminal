@@ -35,6 +35,8 @@ I created a new directory below my home directory. You can create it anywhere yo
 This is enough to test the installation using:
 
     npm install
+
+    npm run build
     
     npm start
 
