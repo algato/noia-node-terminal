@@ -1,7 +1,7 @@
 Noia Node guide on Ubuntu using terminal only
 ==================
 
-This is a quick tutorial for those wanting to host a NOIA node on a virtual box for example. I have used Vultr for this purpose and setup a Ubuntu 16.04 VM.
+This is a quick tutorial for those wanting to host a NOIA node on a virtual box or a VPS-Server for example. I have used Vultr for this purpose and setup a Ubuntu 16.04 VM. Also tested with ubuntu 18.04
 
 If you are interested in signing up on Vultr too, you could use my [ref link](https://www.vultr.com/?ref=7436414) to sign up. Otherwise just browse to [Vultr](https://www.vultr.com) and sign up.
 
@@ -13,11 +13,16 @@ Register and KYC on the NOIA platform
 
 Initial system checks and requirements
 -------------
-We need to make sure that systemd is being used for managing deamons. Run the following command. If your system is using upstart, please refer to this great [tutorial]( https://www.digitalocean.com/community/tutorials/the-upstart-event-system-what-it-is-and-how-to-use-it)
+Logged in as root user, we need to make sure that systemd is being used for managing deamons. Run the following command. If your system is using upstart, please refer to this great [tutorial]( https://www.digitalocean.com/community/tutorials/the-upstart-event-system-what-it-is-and-how-to-use-it)
 
     ps -p 1 -o comm=
 
-If you haven't got one already, create an ERC20 wallet here: [MEW](https://www.myetherwallet.com/)
+If you have activated youf firewall, just add the ports 8048 TCP and 8058 UDP
+
+    ufw allow 8048/tcp
+    ufw allow 8058/udp
+
+Then, if you haven't got one already, create an ERC20 wallet here: [MEW](https://www.myetherwallet.com/)
 
 Node JS and NPM are required for the noia node to run. Install using the commands below
 
@@ -29,6 +34,8 @@ Noia node installation
 ------------
 I created a new directory below my home directory. You can create it anywhere you like though. I will be using the path: /home/noia in this tutorial.
 
+    mkdir /home/noia
+    cd noia
     git clone https://github.com/noia-network/noia-node-terminal.git
     cd /home/noia/noia-node-terminal
 
@@ -65,17 +72,27 @@ If you get a different error, you need to debug - make sure latest npm and nodej
 Noia node configuration
 -------------
 
-Having run the command above, should have generated a settings.json file within your noia-node-terminal folder. Open that file and adjust a couple of settings as described below:
+Having run the command above, should have generated a file:
 
-    nano settings.json
+    /root/.noia-node/node.settings
+    
+Open that file and adjust a couple of settings as described below:
+
+    nano node.settings
 
 Adjust the line for masterAddress to match this:
 
-    "masterAddress": "ws://csl-masters.noia.network:5565"
+    "masterAddress"="wss://csl-masters.noia.network:5565"
 
 Adjust the line for wallet.address to match this:
 
-    "wallet.address": "Your ERC20 wallet address"
+    "airdropAddress"="Your ERC20 wallet address" without quotes
+
+Set the desired size in Bytes. Here for example 1GB 
+
+    [node.storage]
+    dir=/root/.noia-node/storage
+    size=1073741824
 
 Test the node again by running
     npm start
@@ -88,11 +105,30 @@ You should not see any error messages at this point. If you do, please make sure
 
 Adding noia node as a service
 -------------
-Open the noia-node.service file provided within your installation path
+Open the noia-node.service file provided within your installation path /home/noia/noia-node-terminal
 
     nano noia-node.service
 
-Adjust the ExecStart and WorkinDirectory paths to your node and noia installation paths. See an example of my service file witin this repo.
+Adjust the ExecStart and WorkinDirectory paths to your node and noia installation paths. Here an example of my noia-node.service file:
+
+    [Unit]
+    Description=NOIA Node
+    
+    [Service]
+    # If script is installed locally, set its location.
+    ExecStart=/usr/bin/node /home/noia/noia-node-terminal/dist/index.js
+    Restart=always
+    User=root
+    Group=root
+    Environment=PATH=/usr/bin:/usr/local/bin
+    Environment=NODE_ENV=production
+    # Set working directory.
+    WorkingDirectory=/home/noia/noia-node-terminal
+    # Set NOIA data location.
+    Environment=NOIA_NODE_USER_DATA_PATH=/root/.noia-node
+    
+    [Install]
+    WantedBy=multi-user.target
 
 Once done, copy the service file to your /etc/systemd/system directory, adjust its execution rights and restart the systemctl daemon.
 
